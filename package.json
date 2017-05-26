@@ -1,0 +1,13 @@
+{
+  "name": "simple-chat",
+  "version": "0.0.1",
+  "description": "playground for simple chat",
+  "scripts": { 
+  	"start": "node index.js" 
+  },
+  "dependencies": {
+    "express": "^4.10.2",
+    "nodejs-websocket": "^1.6.0",
+	"pouchdb" : "^6.2.0"
+  }
+}
