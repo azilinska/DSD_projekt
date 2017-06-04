@@ -1,5 +1,3 @@
-// 
-
 var app = new Vue({ //framework vue.js
   el: '#app', // prvok viazany na div app v html 
   data: { //v-model v html
@@ -25,7 +23,6 @@ var app = new Vue({ //framework vue.js
             app.message = "";
             
         },
-		
 		// Login/Logout
         onLogin : function() {
         	if (!app.user) { // ak nie je zadany user 
@@ -58,7 +55,6 @@ var app = new Vue({ //framework vue.js
                 };
             }
         },
-		
 		// Clear Data
         onClear : function() {
         	app.messages = [];
