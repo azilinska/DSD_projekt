@@ -1,7 +1,4 @@
 !.gitignore
 
 node_modules
-
-
-
-test_pdb
+pdb

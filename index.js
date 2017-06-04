@@ -15,7 +15,7 @@ http.listen(port, function(){
 });
 
 // instancia lokalnej databazy
-const pdb = new pouchdb("test_pdb");
+const pdb = new pouchdb("pdb");
 
 // websocket 
 var PORT = 5000;
@@ -113,7 +113,7 @@ function clearDb() {
 			console.log("Documents deleted Successfully");
 		});
 	})//
-	.catch(e => {
+	.catch(e => { //styl zapisu v es6
 		console.log('error: ' + e);
 	});
 }
@@ -121,7 +121,7 @@ function clearDb() {
 // replikacia
 function replication(ipAddress) {
 	// adresa vzdialenej databazy
-	const cdb = "http://" + ipAddress + ":5984/test_cdb";
+	const cdb = "http://" + ipAddress + ":5984/cdb";
 	let opts = {
 		live: true, 
 	  	retry: true 
