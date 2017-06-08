@@ -1,6 +1,8 @@
-var app = new Vue({ //framework vue.js
-  el: '#app', // prvok viazany na div app v html 
-  data: { //v-model v html
+/*globals $:false,JSON:false,Vue:true */
+
+var app = new Vue({
+  el: '#app',
+  data: {
     user : "",
     ip : "",
     isLogged : false,
@@ -13,7 +15,6 @@ var app = new Vue({ //framework vue.js
   },
   methods : 
     {
-		// Send
         onSubmit : function() {
             app.socket.send(JSON.stringify({
                 type : "message",
@@ -23,9 +24,8 @@ var app = new Vue({ //framework vue.js
             app.message = "";
             
         },
-		// Login/Logout
         onLogin : function() {
-        	if (!app.user) { // ak nie je zadany user 
+        	if (!app.user) {
         		return;
         	}
             if (app.socket && app.socket.readyState == 1) {
@@ -55,7 +55,6 @@ var app = new Vue({ //framework vue.js
                 };
             }
         },
-		// Clear Data
         onClear : function() {
         	app.messages = [];
         	app.socket && app.socket.send(JSON.stringify({

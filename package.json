@@ -1,7 +1,7 @@
 {
-  "name": "DSD_projekt",
+  "name": "simple-chat",
   "version": "0.0.1",
-  "description": "chat",
+  "description": "playground for simple chat",
   "scripts": { 
   	"start": "node index.js" 
   },

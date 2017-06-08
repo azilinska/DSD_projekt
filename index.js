@@ -1,68 +1,71 @@
-// serverova cast
-var express = require('express'); 
-var app = express();  
+/*globals __dirname:false,JSON:false */
+
+// web part
+var express = require('express');
+var app = express();
 var pouchdb = require('pouchdb');
 var http = require('http').Server(app);
 var port = process.env.PORT || 3000;
 
-// vyhladanie priecinka client
-app.use(express.static('client')); 
+app.use(express.static('client'));
 
-// pocuvanie servera na porte 3000
 http.listen(port, function(){
 	console.log("http server listening on *:" + port);
 	console.log("please browse: http://localhost:" + port);
 });
 
-// instancia lokalnej databazy
-const pdb = new pouchdb("pdb");
+const pdb = new pouchdb("test_pdb");
 
-// websocket 
+//const cdb = new pouchdb('http://localhost:5984/test_cdb');
+//const cdb = new pouchdb('http://192.168.1.13:5984/test_cdb');
+
+// local and remote db synchronization
+// socket part
 var PORT = 5000;
 var ws = require("nodejs-websocket");
 var connections = [];
 var syncHandler;
 
-// vytvorenie ws servera
 var server = ws.createServer(function (conn) {
 	connections.push(conn);
-	// obsluha prijatej spravy z klienta 
-	conn.on("text", function (str) { // str - prijata sprava
-		var data = JSON.parse(str); // transformacia str na JS objekt
+	conn.on("text", function (str) {
+		var data = JSON.parse(str);
+
 		var message, style;
 		var user = data.user;
-		// aka akcia ma nastat podla typu prijatej spravy 
 		switch (data.type) {
-			case "open": // Login
-				// pri viacerych kartach v jednom prehliadaci -> [user] (testovanie na jednom PC)
+			case "open":
+				// array for more users on one connection (tested on localhost multiple client)
 				if (this.currentUser) {
 					~this.currentUser.indexOf(user) || this.currentUser.push(user);
 				} else {
 					this.currentUser = [user];
 				}
-				// inicializacia replikacie lokalnej (pouchDb) databazy voci vzdialenej (couchDb)
-				replication(data.ip || "localhost");
+				_hDbReplication(data.ip || "localhost");
 				message = "has been connected";
 				style = "info";
 				break;
-			case "message": // Send
+			case "message":
 				message = data.message;
 				break;
-			case "close": // ukoncenie servera
+			case "close":
 				message =  "has beed disconnected";
 				style = "info";
 				break;
-			case "logout": // Logout
-				// ukoncenie replikacie
+			case "logout":
 				syncHandler.cancel();
 				message =  "logged off";
 				style = "info";
 				break;
-			case "clear": // Clear data
+			case "clear":
 				clearDb();
 				break;
+			case "typing":
+				message = "is typing";
+				style = "info";
+				break;
 		}
-		// obsah str (data.message) sa posle do databazy 
+
 		message && broadcast(user, message, style);
 	}.bind(this));
 	conn.on("error", function() {
@@ -78,16 +81,13 @@ var server = ws.createServer(function (conn) {
 }).listen(PORT);
 console.log('websocket server listening on ' + PORT);
 
-// ulozenie spravy v DB a zobrazenie v prehliadaci
 function broadcast(user, message, style) {
-	// ak style nie je typu info a sync, ulozi do lokalnej DB (automaticka replikacia na vzdialenu DB)
 	~["info", "sync"].indexOf(style) || pdb.put({
 		_id : new Date().getTime() + "",
 		message : message,
 		user : user,
 		style : style
 	});
-	// pre vsetky spojenia posli spravu 
 	connections.forEach(function(c) {
 		c.sendText(JSON.stringify({
 			message : message,
@@ -97,7 +97,6 @@ function broadcast(user, message, style) {
 	});
 }
 
-// vymazanie DB
 function clearDb() {
 	pdb.allDocs()//
 	.then(r => {
@@ -113,18 +112,16 @@ function clearDb() {
 			console.log("Documents deleted Successfully");
 		});
 	})//
-	.catch(e => { //styl zapisu v es6
+	.catch(e => {
 		console.log('error: ' + e);
 	});
 }
 
-// replikacia
-function replication(ipAddress) {
-	// adresa vzdialenej databazy
-	const cdb = "http://" + ipAddress + ":5984/cdb";
+function _hDbReplication(ipAddress) {
+	const cdb = "http://" + ipAddress + ":5984/test_cdb";
 	let opts = {
-		live: true, 
-	  	retry: true 
+		live: true,
+	  	retry: true
 	};
 	syncHandler = pdb.sync(cdb, opts);
 
@@ -140,6 +137,7 @@ function replication(ipAddress) {
 				return;
 			}
 			broadcast(doc.user, doc.message, "sync");
+			//console.log("Changes from repl:", doc);
 		});
 	});
 
