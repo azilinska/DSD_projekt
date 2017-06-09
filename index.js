@@ -14,7 +14,7 @@ http.listen(port, function(){
 	console.log("please browse: http://localhost:" + port);
 });
 
-const pdb = new pouchdb("test_pdb");
+var localCDB = new pouchdb("http://localhost:5984/test_cdb"); //const pdb
 
 //const cdb = new pouchdb('http://localhost:5984/test_cdb');
 //const cdb = new pouchdb('http://192.168.1.13:5984/test_cdb');
@@ -82,7 +82,7 @@ var server = ws.createServer(function (conn) {
 console.log('websocket server listening on ' + PORT);
 
 function broadcast(user, message, style) {
-	~["info", "sync"].indexOf(style) || pdb.put({
+	~["info", "sync"].indexOf(style) || localCDB.put({
 		_id : new Date().getTime() + "",
 		message : message,
 		user : user,
@@ -98,7 +98,7 @@ function broadcast(user, message, style) {
 }
 
 function clearDb() {
-	pdb.allDocs()//
+	localCDB.allDocs()//
 	.then(r => {
 		var docs = r.rows.map(function(row){ 
 			return { 
@@ -107,7 +107,7 @@ function clearDb() {
 				_deleted: true 
 			}; 
 		});
-		return (docs && docs.length) && pdb.bulkDocs(docs)//
+		return (docs && docs.length) && localCDB.bulkDocs(docs)//
 		.then(() => {
 			console.log("Documents deleted Successfully");
 		});
@@ -118,14 +118,14 @@ function clearDb() {
 }
 
 function _hDbReplication(ipAddress) {
-	const cdb = "http://" + ipAddress + ":5984/test_cdb";
+	var remoteCDB = new PouchDB("http://" + ipAddress + ":5984/test_cdb"); //const cdb
 	let opts = {
 		live: true,
 	  	retry: true
 	};
-	syncHandler = pdb.sync(cdb, opts);
+	syncHandler = localCDB.sync(remoteCDB, opts);
 
-	console.log("Replication to remote DB: ", cdb);
+	console.log("Replication to remote DB: ", remoteCDB);
 
 	syncHandler.on("change", evt => {
 		let docs = evt.change && evt.change.docs;
