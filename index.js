@@ -14,10 +14,7 @@ http.listen(port, function(){
 	console.log("please browse: http://localhost:" + port);
 });
 
-var localCDB = new pouchdb("http://localhost:5984/test_cdb"); //const pdb
-
-//const cdb = new pouchdb('http://localhost:5984/test_cdb');
-//const cdb = new pouchdb('http://192.168.1.13:5984/test_cdb');
+var localCDB = new pouchdb("http://localhost:5984/test_cdb");
 
 // local and remote db synchronization
 // socket part
@@ -25,6 +22,7 @@ var PORT = 5000;
 var ws = require("nodejs-websocket");
 var connections = [];
 var syncHandler;
+var changeHandler;
 
 var server = ws.createServer(function (conn) {
 	connections.push(conn);
@@ -54,6 +52,7 @@ var server = ws.createServer(function (conn) {
 				break;
 			case "logout":
 				syncHandler.cancel();
+				changeHandler.cancel();
 				message =  "logged off";
 				style = "info";
 				break;
@@ -77,6 +76,7 @@ var server = ws.createServer(function (conn) {
 		console.log("Connection closed");
 		broadcast(null, "Client closed connection", "info");
 		syncHandler.cancel();
+		changeHandler.cancel();
 	});
 }).listen(PORT);
 console.log('websocket server listening on ' + PORT);
@@ -118,29 +118,28 @@ function clearDb() {
 }
 
 function _hDbReplication(ipAddress) {
-	var remoteCDB = new pouchdb("http://" + ipAddress + ":5984/test_cdb"); //const cdb
-	let opts = {
+	let remoteAddress = "http://" + ipAddress + ":5984/test_cdb";
+	let remoteCDB = new pouchdb(remoteAddress);
+
+	changeHandler = localCDB.changes({
 		live: true,
-	  	retry: true
-	};
-	syncHandler = localCDB.replicate.to(remoteCDB, opts);
-
-	console.log("Replication to remote DB: ", remoteCDB);
-
-	syncHandler.on("change", evt => {
-		console.log("Changes from repl:", evt);
-		let docs = evt.change && evt.change.docs;
-		if (!docs || !docs.length) {
+		since: 'now',
+		include_docs: true
+	})//
+	.on('change', evt => {
+		let d = evt.doc;
+		if (!d || d._deleted || ~server.currentUser.indexOf(d.user)) {
 			return;
 		}
-		docs.forEach(doc => {
-			if (doc._deleted || ~server.currentUser.indexOf(doc.user)) {
-				return;
-			}
-			broadcast(doc.user, doc.message, "sync");
-			//console.log("Changes from repl:", doc);
-		});
+		broadcast(d.user, d.message, "sync");
 	});
+
+	syncHandler = localCDB.replicate.to(remoteCDB, {
+		live: true,
+		retry: true
+	});
+
+	console.log("Replication to remote DB:", remoteAddress);
 
 	syncHandler.on('error', e => {
 		console.log("error: ", e);
