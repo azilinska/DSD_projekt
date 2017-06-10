@@ -118,16 +118,17 @@ function clearDb() {
 }
 
 function _hDbReplication(ipAddress) {
-	var remoteCDB = new PouchDB("http://" + ipAddress + ":5984/test_cdb"); //const cdb
+	var remoteCDB = new pouchdb("http://" + ipAddress + ":5984/test_cdb"); //const cdb
 	let opts = {
 		live: true,
 	  	retry: true
 	};
-	syncHandler = localCDB.sync(remoteCDB, opts);
+	syncHandler = localCDB.replicate.to(remoteCDB, opts);
 
 	console.log("Replication to remote DB: ", remoteCDB);
 
 	syncHandler.on("change", evt => {
+		console.log("Changes from repl:", evt);
 		let docs = evt.change && evt.change.docs;
 		if (!docs || !docs.length) {
 			return;
